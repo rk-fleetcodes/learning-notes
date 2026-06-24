@@ -355,3 +355,27 @@ Security controls can affect performance through preflights, CSP reports, and th
 - What instrumentation proves it works in production?
 - What API would you expose to a team so misuse is difficult?
 
+# Browser and V8 Deep Dive
+
+## Browser Architecture
+Modern browsers separate the browser process, renderer process, GPU process, network process, extension processes, and utility processes. The browser process owns tabs, navigation, permissions, and UI chrome. Renderer processes run web content and are isolated for security. The GPU process composites layers and handles raster/GPU work. The network process owns fetches, caching, TLS, and proxy behavior.
+
+## Rendering Pipeline
+HTML creates DOM, CSS creates CSSOM, DOM + CSSOM create render tree, layout computes geometry, paint records draw commands, and composite assembles layers. JavaScript can invalidate any part of this pipeline by mutating DOM, styles, or layout-dependent properties.
+
+## V8 Internals
+V8 parses JavaScript into AST/bytecode. Ignition interprets bytecode. TurboFan optimizes hot functions when type feedback is stable. Hidden classes represent object shapes; inline caches speed repeated property access. Changing object shapes in hot paths can deoptimize optimized code.
+
+## Garbage Collection
+V8 uses generational GC: new objects start in young generation and surviving objects promote to old generation. Mark-and-sweep identifies reachable objects; incremental and concurrent marking reduce pause time. Frontend leaks usually come from retained closures, globals, listeners, observers, detached DOM, and unbounded caches.
+
+```mermaid
+graph TD
+JS[JavaScript Source] --> Parse[Parser]
+Parse --> Ignition[Ignition Bytecode]
+Ignition --> Feedback[Type Feedback]
+Feedback --> TurboFan[TurboFan Optimized Code]
+TurboFan --> Deopt[Deopt if assumptions break]
+JS --> Heap[V8 Heap]
+Heap --> GC[Incremental/Generational GC]
+```

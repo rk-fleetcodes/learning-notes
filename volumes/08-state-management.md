@@ -211,3 +211,43 @@ Use React Query Devtools to inspect cache status, stale state, observers, and re
 - What instrumentation proves it works in production?
 - What API would you expose to a team so misuse is difficult?
 
+# Advanced React Query Notes
+
+## Query Lifecycle
+A query starts as idle or loading, executes `queryFn`, stores success/error state by query key, notifies observers, becomes stale after `staleTime`, and is garbage-collected after it has no observers for `gcTime`. The query key is the cache identity; if tenant, locale, filters, or auth scope affect data, they belong in the key.
+
+## Cache Lifecycle and Garbage Collection
+React Query cache entries survive component unmount until garbage collection. This is why navigating away and back can feel instant. In production, tune `staleTime` for freshness and `gcTime` for memory. Admin dashboards often use longer `staleTime` for reference data and short `staleTime` for operational metrics.
+
+## Optimistic Updates
+Optimistic mutations should snapshot previous cache, write optimistic state, cancel in-flight queries, rollback on error, and invalidate on settle. Never optimistic-update data the user may not be authorized to see after a role change.
+
+```ts
+const mutation = useMutation({
+  mutationFn: markNotificationRead,
+  onMutate: async (id) => {
+    await queryClient.cancelQueries({ queryKey: ['notifications'] });
+    const previous = queryClient.getQueryData(['notifications']);
+    queryClient.setQueryData(['notifications'], old => markRead(old, id));
+    return { previous };
+  },
+  onError: (_err, _id, ctx) => queryClient.setQueryData(['notifications'], ctx?.previous),
+  onSettled: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+});
+```
+
+## Pagination and Infinite Queries
+Cursor pagination is safer than offset pagination when lists change. Infinite queries should dedupe IDs because reconnects, retries, and backend race conditions can return overlapping pages.
+
+## Prefetching and Offline Support
+Prefetch route data on intent, not every hover. For offline support, persist query cache carefully, exclude sensitive data, and pair mutations with an idempotent queue.
+
+## Retry Strategies and Mutation Queue
+Use exponential backoff for transient network failures; do not retry validation or authorization failures. Mutation queues need idempotency keys, ordering rules, and visible retry/cancel UI.
+
+## React Query Interview Traps
+- React Query is not Redux; it owns server state lifecycle.
+- `staleTime` is not `gcTime`.
+- Invalidating too broadly causes network storms.
+- Query keys must include every variable that changes the result.
+- Optimistic updates without rollback corrupt trust.

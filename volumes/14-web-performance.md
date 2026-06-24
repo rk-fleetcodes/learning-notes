@@ -351,3 +351,27 @@ Verify with bundle analyzer, not assumptions.
 - What instrumentation proves it works in production?
 - What API would you expose to a team so misuse is difficult?
 
+# Staff+ Performance Playbook
+
+## Metrics Beyond The Basics
+- **TTFB:** server and edge response start. Debug with CDN logs, server timing, cache status, and geographic latency.
+- **FCP:** first text/image paint. Improve by reducing render-blocking CSS/JS and delivering critical HTML quickly.
+- **LCP:** largest visible content. Optimize image discovery, priority, dimensions, TTFB, and main-thread blocking.
+- **CLS:** visual stability. Reserve space for images, ads, embeds, and async banners.
+- **INP:** interaction responsiveness. Break long tasks, reduce render fanout, virtualize large lists, and move CPU work to workers.
+
+## Chrome DevTools Workflow
+1. Record with CPU throttling and network conditions matching field data.
+2. Inspect the main thread for long tasks.
+3. Expand scripting stacks to identify framework, app, and third-party cost.
+4. Check Layout/Paint events for forced reflow or expensive rendering.
+5. Correlate with React Profiler commits.
+
+## React Profiler Walkthrough
+Use the Ranked tab to find expensive components, then ask whether cost is render frequency or render duration. Fix state placement, key stability, memoized selectors, virtualization, or expensive derived data only after observing the flamegraph.
+
+## Memory Profiling
+Take heap snapshots before and after repeated navigation. Look for retained listeners, timers, WebSocket subscriptions, detached DOM, unbounded React Query caches, and large arrays captured by closures.
+
+## Bundle Analysis
+Analyze parsed and executed JavaScript, not only gzip size. Prefer route-level code splitting, ESM imports, dependency dedupe, and removing side-effectful barrels that block tree shaking.

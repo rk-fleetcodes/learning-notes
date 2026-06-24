@@ -252,3 +252,127 @@ Profile message rate, render batching, and memory backpressure.
 - What instrumentation proves it works in production?
 - What API would you expose to a team so misuse is difficult?
 
+# Staff+ Frontend System Design Playbooks
+
+These playbooks are intentionally concrete: each system includes architecture, data flow, state flow, API design, scaling, security, accessibility, monitoring, and recovery.
+
+## Notification System
+
+```mermaid
+graph TD
+API[Notification API] --> Stream[SSE/WebSocket Stream]
+API --> Store[(Notification Store)]
+Stream --> Client[React Query Cache]
+Client --> Bell[Badge + Center]
+Bell --> A11y[aria-live polite]
+Client --> RUM[Read latency + duplicate event metrics]
+```
+
+- **Data flow:** server emits notification events with monotonic IDs; client dedupes by ID and updates unread counts.
+- **State flow:** unread count is server state; open/closed panel is client state; optimistic read updates must rollback on mutation failure.
+- **API design:** `GET /notifications?cursor=`, `POST /notifications/:id/read`, `POST /notifications/read-all`, event `{id,type,actor,createdAt,readAt}`.
+- **Scaling challenges:** fanout, duplicate delivery, cursor pagination, reconnect replay, multi-tab synchronization.
+- **Security:** never expose notifications across tenant boundaries; authorize every cursor and mutation.
+- **Accessibility:** badge changes should not spam screen readers; panel needs focus management and keyboard navigation.
+- **Monitoring:** unread drift, event lag, duplicate event rate, read mutation failures.
+- **Failure recovery:** replay from last seen event ID; reconcile with `GET` after reconnect.
+
+## Chat System
+
+- **Architecture:** WebSocket for messages/presence, HTTP for history, IndexedDB for offline draft/cache, virtualized message list for long rooms.
+- **Data flow:** optimistic local message uses `clientMessageId`; server ack maps it to `messageId` and sequence.
+- **State flow:** input draft is local; message history is server cache; presence is ephemeral stream state.
+- **API design:** `GET /rooms/:id/messages?before=`, `POST /rooms/:id/messages`, WebSocket `message.created`, `message.ack`, `presence.changed`.
+- **Scaling:** ordering, idempotency, backpressure, scroll anchoring, media upload, reconnect storms.
+- **Security:** membership check on every room event; escape rich text; scan attachments.
+- **Accessibility:** new-message announcements only when user is at bottom; preserve focus while messages arrive.
+- **Monitoring:** send latency, ack latency, reconnect count, dropped events, virtual list render cost.
+- **Recovery:** optimistic retry queue with exponential backoff and duplicate suppression.
+
+## Maps System
+
+- **Architecture:** tile CDN, vector data API, web worker for clustering, canvas/WebGL renderer, URL state for viewport.
+- **Data flow:** viewport changes request tiles and domain markers; worker clusters markers; UI renders layers.
+- **State flow:** map camera is client state; pins/search results are server state; selected marker is URL/share state.
+- **Scaling:** tile cache, marker clustering, pan throttling, memory pressure from decoded tiles.
+- **Security:** do not leak private coordinates across tenants; sign tile URLs when needed.
+- **Accessibility:** provide list alternative for map results and keyboard navigation for markers.
+- **Monitoring:** tile error rate, frame rate, worker time, memory growth.
+- **Recovery:** fallback to static map/list when WebGL or tile service fails.
+
+## File Upload System
+
+- **Architecture:** client validates file, requests signed URL, uploads chunks directly to object storage, finalizes metadata through API.
+- **Data flow:** file -> chunk queue -> signed URLs -> storage -> finalize -> asset record.
+- **State flow:** per-file state machine: queued, hashing, uploading, paused, failed, complete.
+- **Scaling:** resumable chunks, concurrency limits, backpressure, mobile network interruption.
+- **Security:** MIME sniffing server-side, virus scanning, size limits, tenant-scoped storage keys.
+- **Accessibility:** progress bar with `aria-valuenow`; keyboard operable cancel/retry.
+- **Monitoring:** upload throughput, chunk failure rate, finalize failures.
+- **Recovery:** persist upload session in IndexedDB and resume unfinished chunks.
+
+## Realtime Dashboard
+
+- **Architecture:** snapshot HTTP endpoint plus WebSocket/SSE deltas; reducer applies idempotent events to normalized cache.
+- **Data flow:** initial snapshot -> event stream -> periodic reconciliation snapshot.
+- **State flow:** filters are URL/client state; metrics are server state; connection status is UI state.
+- **Scaling:** event batching, rendering throttles, chart downsampling, backpressure.
+- **Security:** authorize each metric and redact sensitive dimensions.
+- **Accessibility:** do not constantly move focus; announce critical alerts through controlled live regions.
+- **Monitoring:** event lag, dropped events, chart render time, memory growth.
+- **Recovery:** reconnect with last event ID; if gap detected, refetch snapshot.
+
+## Infinite Scroll
+
+- **Architecture:** cursor API, IntersectionObserver sentinel, React Query infinite query, virtualized list.
+- **Data flow:** viewport approaches sentinel -> fetch next cursor -> append page -> virtualizer renders visible window.
+- **State flow:** pages are server cache; scroll position is browser state; filters reset cursor cache.
+- **Scaling:** duplicate pages, unstable sort, SEO, memory from unbounded pages.
+- **Security:** cursor must encode authorized scope; do not trust client offsets for private data.
+- **Accessibility:** provide Load More button fallback and announce newly loaded item count.
+- **Monitoring:** fetch latency, duplicate item rate, scroll jank, memory.
+- **Recovery:** retry failed page without losing previous pages.
+
+## Analytics Dashboard
+
+- **Architecture:** query builder UI, metrics API, chart renderer, worker for transforms, cache keyed by tenant/date/filter.
+- **Data flow:** filters -> validated query -> API -> normalized series -> chart.
+- **State flow:** URL owns shareable filters; server cache owns metric results; hover/selection is local state.
+- **Scaling:** high-cardinality dimensions, large JSON payloads, chart overdraw, expensive date math.
+- **Security:** row-level authorization and metric redaction.
+- **Accessibility:** chart table fallback and keyboard-accessible legends.
+- **Monitoring:** query latency, payload size, chart render cost, filter abandonment.
+- **Recovery:** partial chart error states and cached stale data indicator.
+
+## Multi Tenant SaaS
+
+- **Architecture:** tenant resolver, permission service, feature flag service, themed design system, tenant-scoped caches.
+- **Data flow:** request/session -> tenant -> permissions/flags/theme -> route data.
+- **State flow:** tenant is top-level app state; caches must include tenant ID and role.
+- **Scaling:** tenant switching, custom domains, per-tenant config, noisy-neighbor APIs.
+- **Security:** never reuse cache entries across tenant or role; server-enforce all permissions.
+- **Accessibility:** custom themes must maintain contrast and focus indicators.
+- **Monitoring:** tenant-specific error rates, slow tenants, permission denials.
+- **Recovery:** safe tenant switch clears scoped stores and aborts old requests.
+
+## Design System
+
+- **Architecture:** tokens, primitives, composed components, docs, visual tests, release pipeline.
+- **Data flow:** Figma tokens -> token build -> CSS variables/packages -> consuming apps.
+- **State flow:** components expose controlled/uncontrolled APIs and clear accessibility state.
+- **Scaling:** versioning, migration codemods, ownership, contribution review.
+- **Security:** avoid unsafe HTML props by default.
+- **Accessibility:** primitives must encode ARIA, focus management, and keyboard behavior.
+- **Monitoring:** adoption, bundle impact, accessibility regressions.
+- **Recovery:** deprecate with migration path; do not silently break product flows.
+
+## Offline First Application
+
+- **Architecture:** service worker, Cache Storage, IndexedDB mutation queue, sync/retry engine, conflict resolver.
+- **Data flow:** read from cache first; enqueue mutations offline; sync when network returns.
+- **State flow:** local optimistic state, persisted queue, server canonical state.
+- **Scaling:** conflict resolution, schema migrations, quota limits, stale data warnings.
+- **Security:** encrypt sensitive offline data where appropriate and expire cached sessions.
+- **Accessibility:** clearly announce offline/queued/synced states.
+- **Monitoring:** queue length, sync failures, conflict rate, quota errors.
+- **Recovery:** replay idempotent mutations and surface conflicts for human decision.

@@ -4,7 +4,7 @@ This repository is a senior-engineer learning system for mastering frontend engi
 
 ## What changed in this revision
 
-- Removed generic placeholder prose and replaced it with domain-specific topic notes.
+- Rewrote the notes as domain-specific topic material with concrete runtime, production, debugging, profiling, and interview guidance.
 - Each topic now focuses on its own concept instead of repeating a universal template.
 - Added production React examples, debugging scenarios, performance profiling guidance, architecture diagrams, and product-company interview prompts.
 - Kept the 17-volume roadmap while making the content read like engineering notes from a senior frontend architect.
@@ -30,6 +30,14 @@ This repository is a senior-engineer learning system for mastering frontend engi
 | 15 | Accessibility | [volumes/15-accessibility.md](volumes/15-accessibility.md) |
 | 16 | Security | [volumes/16-security.md](volumes/16-security.md) |
 | 17 | Advanced Frontend Patterns | [volumes/17-advanced-frontend-patterns.md](volumes/17-advanced-frontend-patterns.md) |
+| 18 | Next.js Mastery | [volumes/18-nextjs-mastery.md](volumes/18-nextjs-mastery.md) |
+| 19 | Testing Mastery | [volumes/19-testing-mastery.md](volumes/19-testing-mastery.md) |
+| 20 | Build Tools | [volumes/20-build-tools.md](volumes/20-build-tools.md) |
+| 21 | Enterprise Frontend Architecture | [volumes/21-enterprise-frontend-architecture.md](volumes/21-enterprise-frontend-architecture.md) |
+| 22 | Micro Frontends | [volumes/22-micro-frontends.md](volumes/22-micro-frontends.md) |
+| 23 | Module Federation | [volumes/23-module-federation.md](volumes/23-module-federation.md) |
+| 24 | Frontend Observability | [volumes/24-frontend-observability.md](volumes/24-frontend-observability.md) |
+| 25 | AI in Frontend Engineering | [volumes/25-ai-in-frontend-engineering.md](volumes/25-ai-in-frontend-engineering.md) |
 
 ## Recommended learning order
 
@@ -50,6 +58,9 @@ L --> M[Security]
 M --> N[Architecture]
 N --> O[System Design]
 O --> P[Interview Mastery]
+P --> Q[Next.js + Testing + Build Tools]
+Q --> R[Enterprise Architecture + Micro Frontends]
+R --> S[Observability + AI Frontend]
 ```
 
 ## How to use these notes
