@@ -43,25 +43,6 @@ E --> F[React Core]
 F --> G[React Internals]
 G --> H[State Management]
 H --> I[Advanced React]
-<<<<<<< HEAD
-I --> J[TypeScript Mastery]
-J --> K[Web Performance]
-K --> L[Accessibility]
-L --> M[Security]
-M --> N[Frontend Architecture]
-N --> O[Frontend System Design]
-O --> P[Interview Mastery]
-```
-
-## Expert Checklist
-
-- Explain every topic in one sentence, one diagram, and one production example.
-- Predict JavaScript execution order and memory behavior.
-- Predict browser rendering and networking behavior.
-- Predict React render, reconciliation, commit, and scheduling behavior.
-- Design accessible, secure, observable, and performant frontend systems.
-- Solve interview problems while explaining trade-offs.
-=======
 I --> J[TypeScript]
 J --> K[Performance]
 K --> L[Accessibility]
@@ -74,4 +55,3 @@ O --> P[Interview Mastery]
 ## How to use these notes
 
 For each topic: read the internal model, run or rewrite the code example, reproduce the debugging scenario, profile the example in DevTools/React Profiler, and answer the interview prompts aloud.
->>>>>>> e2f0cb48566379c4823ff965c194ab4181cb67d1
